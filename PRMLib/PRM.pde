@@ -1,3 +1,4 @@
+import java.util.*;
 //You will only be turning in this file
 //Your solution will be graded based on it's runtime (smaller is better), 
 //the optimality of the path you return (shorter is better), and the
@@ -62,36 +63,21 @@ void connectNeighbors(Vec2[] centers, float[] radii, int numObstacles, Vec2[] no
   }
 }
 
-//This is probably a bad idea and you shouldn't use it...
-int closestNode(Vec2 point, Vec2[] nodePos, int numNodes){
-  int closestID = -1;
-  float minDist = 999999;
-  for (int i = 0; i < numNodes; i++){
-    float dist = nodePos[i].distanceTo(point);
-    if (dist < minDist){
-      closestID = i;
-      minDist = dist;
-    }
-  }
-  return closestID;
-}
-
 ArrayList<Integer> planPath(Vec2 startPos, Vec2 goalPos, Vec2[] centers, float[] radii, int numObstacles, Vec2[] nodePos, int numNodes){
   ArrayList<Integer> path = new ArrayList();
   
-  int startID = closestNode(startPos, nodePos, numNodes);
-  int goalID = closestNode(goalPos, nodePos, numNodes);
-  
-  //path = runAStar(nodePos, numNodes, startID, goalID);
-  path = runAStarBetter(nodePos, numNodes, startPos, goalPos, centers, radii);
+  path = runAStar(nodePos, numNodes, startPos, goalPos, centers, radii);
   
   return path;
 }
 
 // DOES NOT WORK YET. Still need to account for last bit
-ArrayList<Integer> runAStarBetter(Vec2[] nodePos, int numNodes, Vec2 startPos, Vec2 goalPos, Vec2[] centers, float[] radii) {
-  PriorityQueue fringe = new PriorityQueue();
-  int[] cameFrom = new int[numNodes];
+ArrayList<Integer> runAStar(Vec2[] nodePos, int numNodes, Vec2 startPos, Vec2 goalPos, Vec2[] centers, float[] radii) {
+  int startID = numNodes + 1;
+  int goalID = numNodes + 2;
+  
+  PriorityQueue<Node> fringe = new PriorityQueue<Node>(maxNumNodes);
+  int[] cameFrom = new int[numNodes + 3];
   HashMap<Integer, Float> costSoFar = new HashMap<Integer, Float>();
   ArrayList<Integer> goalNodes = new ArrayList<Integer>();
   
@@ -102,8 +88,8 @@ ArrayList<Integer> runAStarBetter(Vec2[] nodePos, int numNodes, Vec2 startPos, V
     float distBetween = startPos.distanceTo(nodePos[i]);
     hitInfo circleListCheck = rayCircleListIntersect(centers, radii, numObstacles, startPos, dir, distBetween);
     if (!circleListCheck.hit){
-      fringe.insert(i, distBetween + nodePos[i].distanceTo(goalPos));
-      cameFrom[i] = -1;
+      fringe.add(new Node(i, distBetween + nodePos[i].distanceTo(goalPos)));
+      cameFrom[i] = startID;
       costSoFar.put(i, distBetween);
     }
     
@@ -116,24 +102,31 @@ ArrayList<Integer> runAStarBetter(Vec2[] nodePos, int numNodes, Vec2 startPos, V
     }
   }
   
-  int currentNode = 0;
+  Node currentNode = new Node(0, 0);
   
   while(!fringe.isEmpty()) {
-    currentNode = fringe.extractMin();
+    currentNode = fringe.poll(); //<>//
     
-    if (goalNodes.contains(currentNode)) {
+    if (currentNode.id == goalID) {
       break;
     }
     
-    for (int i = 0; i < neighbors[currentNode].size(); i++){
-      int next = neighbors[currentNode].get(i);
-      float newCost = costSoFar.get(currentNode) + distanceBetweenNodes(nodePos, currentNode, next);
+    if (goalNodes.contains(currentNode.id)) {
+      float priority = costSoFar.get(currentNode.id) + nodePos[currentNode.id].distanceTo(goalPos);
+      fringe.add(new Node(goalID, priority));
+      cameFrom[goalID] = currentNode.id;
+      continue;
+    }
+    
+    for (int i = 0; i < getNeighborIds(currentNode).size(); i++){
+      int next = getNeighborIds(currentNode).get(i);
+      float newCost = costSoFar.get(currentNode.id) + distanceBetweenNodes(nodePos, currentNode.id, next);
       
       if(!costSoFar.containsKey(next) || newCost < costSoFar.get(next)) {
         costSoFar.put(next, newCost);
         float priority = newCost + nodePos[next].distanceTo(goalPos);
-        fringe.insert(next, priority);
-        cameFrom[next] = currentNode;
+        fringe.add(new Node(next, priority));
+        cameFrom[next] = currentNode.id;
       }
     } 
   }
@@ -145,58 +138,18 @@ ArrayList<Integer> runAStarBetter(Vec2[] nodePos, int numNodes, Vec2 startPos, V
     return path;
   }
   
-  while (currentNode != -1) {
-    path.add(0, currentNode);
-    currentNode = cameFrom[currentNode];
+  int currentNodeID = cameFrom[currentNode.id];
+  
+  while (currentNodeID != startID) {
+    path.add(0, currentNodeID);
+    currentNodeID = cameFrom[currentNodeID];
   }
   
   return path;
 }
 
-
-ArrayList<Integer> runAStar(Vec2[] nodePos, int numNodes, int startID, int goalID) {
-  PriorityQueue fringe = new PriorityQueue();
-  fringe.insert(startID, 0);
-  int[] cameFrom = new int[numNodes];
-  HashMap<Integer, Float> costSoFar = new HashMap<Integer, Float>();
-  
-  cameFrom[startID] = 0;
-  costSoFar.put(startID, 0.0);
-  
-  while(!fringe.isEmpty()) {
-    int currentNode = fringe.extractMin();
-    
-    if (currentNode == goalID) {
-      break;
-    }
-    
-    for (int i = 0; i < neighbors[currentNode].size(); i++){
-      int next = neighbors[currentNode].get(i);
-      float newCost = costSoFar.get(currentNode) + distanceBetweenNodes(nodePos, currentNode, next);
-      
-      if(!costSoFar.containsKey(next) || newCost < costSoFar.get(next)) {
-        costSoFar.put(next, newCost);
-        float priority = newCost + distanceBetweenNodes(nodePos, next, goalID);
-        fringe.insert(next, priority);
-        cameFrom[next] = currentNode;
-      }
-    } 
-  }
-  
-  int currentNode = goalID;
-  ArrayList<Integer> path = new ArrayList();
-  
-  if (fringe.isEmpty()) {
-    path.add(0,-1);
-    return path;
-  }
-  
-  while (currentNode != startID) {
-    path.add(0, currentNode);
-    currentNode = cameFrom[currentNode];
-  }
-  
-  return path;
+ArrayList<Integer> getNeighborIds(Node n) {
+  return neighbors[n.id];
 }
 
 float distanceBetweenNodes(Vec2[] nodePos, int nodeID, int goalID) {

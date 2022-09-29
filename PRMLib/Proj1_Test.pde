@@ -20,13 +20,8 @@ static int maxNumObstacles = 1000;
 Vec2 circlePos[] = new Vec2[maxNumObstacles]; //Circle positions
 float circleRad[] = new float[maxNumObstacles];  //Circle radii
 
-float agentCircleRad[] = new float[maxNumObstacles];
-float agentRad = 10;
-int numberOfAgents = 5;
-
-Vec2[] startPos = new Vec2[numberOfAgents];
-Vec2[] currentPos = new Vec2[numberOfAgents];
-Vec2[] goalPos = new Vec2[numberOfAgents];
+Vec2 startPos = new Vec2(100,500);
+Vec2 goalPos = new Vec2(500,200);
 
 static int maxNumNodes = 1000;
 Vec2[] nodePos = new Vec2[maxNumNodes];
@@ -51,7 +46,6 @@ void placeRandomObstacles(int numObstacles){
   for (int i = 0; i < numObstacles; i++){
     circlePos[i] = new Vec2(random(50,950),random(50,700));
     circleRad[i] = (10+40*pow(random(1),3));
-    agentCircleRad[i] = circleRad[i] + agentRad;
   }
   circleRad[0] = 30; //Make the first obstacle big
 }
@@ -60,7 +54,7 @@ ArrayList<Integer> curPath;
 
 int strokeWidth = 2;
 void setup(){
-  size(1024,768);
+  size(1024,768); //<>//
   testPRM();
 }
 
@@ -127,7 +121,6 @@ void testPRM(){
   placeRandomObstacles(numObstacles);
   
   startPos = sampleFreePos();
-  currentPos = startPos.times(1);
   goalPos = sampleFreePos();
 
   generateRandomNodes(numNodes, circlePos, circleRad);
@@ -202,11 +195,6 @@ void draw(){
   }
   line(goalPos.x,goalPos.y,nodePos[curPath.get(curPath.size()-1)].x,nodePos[curPath.get(curPath.size()-1)].y);
   
-  //Draw moving agent
-  moveAgent(1.0/frameRate);
-  strokeWeight(0);
-  fill(128, 0, 128);
-  circle(currentPos.x, currentPos.y, agentRad);
 }
 
 boolean shiftDown = false;
@@ -254,51 +242,4 @@ void mousePressed(){
     //println("New Goal is",goalPos.x, goalPos.y);
   }
   curPath = planPath(startPos, goalPos, circlePos, circleRad, numObstacles, nodePos, numNodes);
-}
-
-float maxVelocity = 100;
-float maxAcceleration = 300;
-Vec2 currentVel = new Vec2(0, 0);
-Vec2 goalVel = new Vec2(0, 0);
-Vec2 agentsGoalPos = new Vec2(0, 0);
-
-void moveAgent(float dt) {
-  if(isMovementPossible(currentPos, goalPos)) {
-    agentsGoalPos = goalPos;
-  }
-  else {
-    for (int i = curPath.size()-1; i >= 0; i--){
-      Vec2 curPathNode = nodePos[curPath.get(i)];
-      if (isMovementPossible(currentPos, curPathNode)) {
-        agentsGoalPos = curPathNode;
-        break;
-      }
-    }
-  }
-  
-  goalVel = agentsGoalPos.minus(currentPos);
-  if(goalVel.length() != 0) {
-    goalVel.setToLength(maxVelocity);
-  }
-  
-  Vec2 currentAcc = goalVel.minus(currentVel);
-  if (currentAcc.length() >= maxAcceleration * dt) {
-    currentAcc.setToLength(maxAcceleration);
-  }
-  
-  currentVel.add(currentAcc.times(dt));
-  
-  float distanceToGoal = currentPos.distanceTo(agentsGoalPos);
-  if (distanceToGoal < currentVel.times(dt).length()) {
-    currentPos = agentsGoalPos.times(1);
-  } else {
-    currentPos.add(currentVel.times(dt));
-  }
-}
-
-boolean isMovementPossible(Vec2 initialPos, Vec2 finalPos) {
-  Vec2 dir = finalPos.minus(initialPos).normalized();
-  float distBetween = initialPos.distanceTo(finalPos);
-  hitInfo circleListCheck = rayCircleListIntersect(circlePos, circleRad, numObstacles, initialPos, dir, distBetween);
-  return !circleListCheck.hit;
 }
