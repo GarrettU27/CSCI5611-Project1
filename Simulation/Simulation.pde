@@ -11,7 +11,7 @@
 // Pressing 'r' will randomize the obstacles and re-run the tests
 
 //Change the below parameters to change the scenario/roadmap size
-int numObstacles = 200;
+int numObstacles = 150;
 int numNodes  = 200;
   
   
@@ -19,17 +19,25 @@ int numNodes  = 200;
 static int maxNumObstacles = 1000;
 Vec2 circlePos[] = new Vec2[maxNumObstacles]; //Circle positions
 float circleRad[] = new float[maxNumObstacles];  //Circle radii
+float circleRotation[] = new float[maxNumObstacles]; // Circle rotations
+float circleRotationSpeed[] = new float[maxNumObstacles]; // Circle rotation speed
 
-float agentRad = 10;
+float agentRad = 20;
 int numberOfAgents = 10;
 
 Vec2[] startPos = new Vec2[numberOfAgents];
 Vec2[] currentPos = new Vec2[numberOfAgents];
+float[] currentAngle = new float[numberOfAgents];
 Vec2[] goalPos = new Vec2[numberOfAgents];
 ArrayList<Integer>[] curPath = new ArrayList[numberOfAgents];
 
 static int maxNumNodes = 1000;
 Vec2[] nodePos = new Vec2[maxNumNodes];
+
+PImage rocketImage;
+PImage asteroidImage;
+PImage milkywayImage;
+PGraphics asteroidAtmosphere;
 
 //Generate non-colliding PRM nodes
 void generateRandomNodes(int numNodes, Vec2[] circleCenters, float[] circleRadii){
@@ -50,7 +58,18 @@ void placeRandomObstacles(int numObstacles){
   //Initial obstacle position
   for (int i = 0; i < numObstacles; i++){
     circlePos[i] = new Vec2(random(50,2000),random(50,1460));
-    circleRad[i] = (10+40*pow(random(1),3)) + agentRad;
+    circleRad[i] = (20+40*pow(random(1),3));
+    
+    // if in another circle, retry
+    if (circleIntersectsCircleList(circlePos, circleRad, i, circlePos[i], circleRad[i])) {
+      i--;
+      continue;
+    }
+    
+    circleRad[i] += agentRad; // the agentRad is accounted for in calculations, but I don't want it accounted for in placement
+                              // as they are drawn without the agent radius
+    circleRotation[i] = random(-PI, PI);
+    circleRotationSpeed[i] = random(-PI/6, PI/6);
   }
   circleRad[0] = 30 + agentRad; //Make the first obstacle big
 }
@@ -68,6 +87,9 @@ void setup(){
     agentsGoalPos[i] = new Vec2(0, 0);
   }
   
+  rocketImage = loadImage("rocket.png");
+  asteroidImage = loadImage("asteroid.png");
+  milkywayImage = loadImage("milkyway.png");
   createGraph();
 }
 
@@ -100,27 +122,36 @@ Vec2 sampleFreePos(){
 void draw(){
   //println("FrameRate:",frameRate);
   
-  strokeWeight(1);
-  background(200); //Grey background
+  strokeWeight(0);
+  //background(200); //Grey background
+  //background(milkywayImage);
+  background(0, 0, 0);
   stroke(0,0,0);
-  fill(255,255,255);
-  //PImage img = loadImage("rocket.png");
-  //textureMode(NORMAL);
-  //beginShape();
-  //texture(img);
-  //vertex(0, 0, 0, 0);
-  //vertex(agentRad, 0, 1, 0);
-  //vertex(agentRad, agentRad, 1, 1);
-  //vertex(0, agentRad, 0, 1);
-  //endShape();
-  
+  fill(255,255,255, 80);
   
   //Draw the circle obstacles
   for (int i = 0; i < numObstacles; i++){
     Vec2 c = circlePos[i];
     float r = circleRad[i] - agentRad;
+
+    pushMatrix();
+    translate(c.x, c.y);
+    rotate(circleRotation[i]);
+    textureMode(NORMAL); 
+    beginShape();
+    texture(asteroidImage);
+    vertex(-r, -r, 0, 0);
+    vertex(r, -r, 1, 0);
+    vertex(r, r, 1, 1);
+    vertex(-r, r, 0, 1);
+    endShape();
+    popMatrix();
+    
     circle(c.x,c.y,r*2);
+    
+    circleRotation[i] += ((1/frameRate)*circleRotationSpeed[i]) % PI;
   }
+  
   //Draw the first circle a little special b/c the user controls it
   fill(240);
   strokeWeight(2);
@@ -134,28 +165,30 @@ void draw(){
   }
   
   //Draw graph
-  stroke(100,100,100);
+  stroke(50,50,50);
   strokeWeight(1);
   for (int i = 0; i < numNodes; i++){
     for (int j : neighbors[i]){
       line(nodePos[i].x,nodePos[i].y,nodePos[j].x,nodePos[j].y);
     }
+    
+  }
+  
+  stroke(255, 255, 255);
+  strokeWeight(5);
+  for (int i = 0; i < numNodes; i++) { 
+    point(nodePos[i].x, nodePos[i].y);
   }
   
   moveAgents(1.0/frameRate);
-  color a = color(255, 0, 0);
-  color b = color(0, 0, 255);
   
   for (int i = 0; i < numberOfAgents; i++) {
     float PHI = (1 + sqrt(5))/2;
     float n = i * PHI - floor(i * PHI);
     colorMode(HSB, 255, 255, 255);
     
-    //stroke(100,100,100);
-    //strokeWeight(1);
     stroke(0, 0, 0);
     strokeWeight(1);
-    //color colorToUse = lerpColor(a, b, (1.0/numberOfAgents)*(i+1.0));
     color colorToUse = color(floor(n*256), 128, 255);
     colorMode(RGB, 255, 255, 255);
     
@@ -183,9 +216,24 @@ void draw(){
     }
     line(goalPos[i].x,goalPos[i].y,nodePos[curPath[i].get(curPath[i].size()-1)].x,nodePos[curPath[i].get(curPath[i].size()-1)].y);
     
+    strokeWeight(0);
+    pushMatrix();
+    translate(currentPos[i].x, currentPos[i].y);
+    rotate(currentAngle[i]);
+    textureMode(NORMAL); 
+    beginShape();
+    texture(rocketImage);
+    vertex(-(agentRad/2), -agentRad, 0, 0);
+    vertex(agentRad/2, -agentRad, 1, 0);
+    vertex(agentRad/2, agentRad, 1, 1);
+    vertex(-(agentRad/2), agentRad, 0, 1);
+    endShape();
+    popMatrix();
+    
     //Draw moving agents
-    stroke(0, 0, 0);
-    strokeWeight(1);    fill(colorToUse);
+    stroke(colorToUse);
+    strokeWeight(2);    
+    fill(colorToUse, 70);
     circle(currentPos[i].x, currentPos[i].y, agentRad*2);
   } 
 }
@@ -268,6 +316,8 @@ void moveAgents(float dt) {
     } else {
       currentPos[i].add(currentVel[i].times(dt));
     }
+    
+    currentAngle[i] = atan2(currentVel[i].y, currentVel[i].x) + PI/2;
     
     //strokeWeight(2);
     

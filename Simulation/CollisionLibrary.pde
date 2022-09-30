@@ -84,3 +84,16 @@ hitInfo rayCircleListIntersect(Vec2[] centers, float[] radii,  int numObstacles,
   }
   return hit;
 }
+
+boolean circleIntersectsCircleList(Vec2[] centers, float[] radii, int numObstacles, Vec2 centerToTest, float radToTest) {
+  for (int i = 0; i < numObstacles; i++){
+    Vec2 center =  centers[i];
+    float r = radii[i];
+    
+    float distBetween = center.distanceTo(centerToTest);
+    if (distBetween < r + radToTest){
+      return true;
+    }
+  }
+  return false;
+}
