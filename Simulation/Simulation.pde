@@ -11,8 +11,8 @@
 // Pressing 'r' will randomize the obstacles and re-run the tests
 
 //Change the below parameters to change the scenario/roadmap size
-int numObstacles = 100;
-int numNodes  = 100;
+int numObstacles = 200;
+int numNodes  = 200;
   
   
 //A list of circle obstacles
@@ -49,7 +49,7 @@ void generateRandomNodes(int numNodes, Vec2[] circleCenters, float[] circleRadii
 void placeRandomObstacles(int numObstacles){
   //Initial obstacle position
   for (int i = 0; i < numObstacles; i++){
-    circlePos[i] = new Vec2(random(50,950),random(50,700));
+    circlePos[i] = new Vec2(random(50,2000),random(50,1460));
     circleRad[i] = (10+40*pow(random(1),3)) + agentRad;
   }
   circleRad[0] = 30 + agentRad; //Make the first obstacle big
@@ -57,7 +57,7 @@ void placeRandomObstacles(int numObstacles){
 
 int strokeWidth = 2;
 void setup(){
-  size(1024,768, P2D);
+  size(2048,1536,P2D);
   
   for(int i = 0; i < numberOfAgents; i++) {
     startPos[i] = new Vec2(0, 0);
@@ -166,7 +166,7 @@ void draw(){
     fill(colorToUse);
     circle(goalPos[i].x,goalPos[i].y,20);
     
-    if (curPath[i].size() >0 && curPath[i].get(0) == -1) return; //No path found
+    if (curPath[i].size() >0 && curPath[i].get(0) == -1) continue; //No path found
     
     //Draw Planned Path
     stroke(colorToUse);
@@ -234,6 +234,9 @@ void moveAgents(float dt) {
     if(isMovementPossible(currentPos[i], goalPos[i])) {
       agentsGoalPos[i] = goalPos[i];
     }
+    else if (curPath[i].size() == 1 && curPath[i].get(0) == -1)  { //No path found
+      agentsGoalPos[i] = startPos[i];
+    }
     else {
       for (int j = curPath[i].size()-1; j >= 0; j--){
         Vec2 curPathNode = nodePos[curPath[i].get(j)];
@@ -254,10 +257,10 @@ void moveAgents(float dt) {
     }
     
     Vec2 currentAcc = goalVel[i].minus(currentVel[i]);
-    currentAcc.setToLength(maxAcceleration);
-    
-    
-    currentVel[i].add(currentAcc.times(dt));
+    if (currentAcc.length() > 5) {
+      currentAcc.setToLength(maxAcceleration);
+      currentVel[i].add(currentAcc.times(dt));
+    }
     
     float distanceToGoal = currentPos[i].distanceTo(agentsGoalPos[i]);
     if (distanceToGoal < currentVel[i].times(dt).length()) {
