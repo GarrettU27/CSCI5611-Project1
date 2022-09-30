@@ -46,7 +46,7 @@
       When the obstacles are being generated, they actively check whether they
       intersect any other obstacle. This results in no obstacles overlapping
       each other. This can be seen throughout the video (the spinning asteroids
-      are the obstacles).
+      are the obstacles and, as you can see, no obstacles are overlapping).
     </p>
     <h2>Natural Movement</h2>
     <p>
@@ -111,14 +111,15 @@
       calculations. These are also displayed in the simulation. The bounding
       geometry for the spaceship is the little force field around it and the
       bounding geometry for the asteroid is the little atmosphere around it
-      (both are colored, transparent cirlces overlayed on top of the quad).
+      (both are colored, transparent cirlces overlayed on top of their
+      respective quad).
     </p>
     <h2>Orientation Smoothing</h2>
     <p>
       The agents are rendered as space ships and have a clear front and back.
       The front of the space ship (the nose of the rocket) is supposed to be
       pointing in the same direction the ship is moving, so it looks more like
-      an actual rocket moving through space. The acceleartion and velocity
+      an actual rocket moving through space. The acceleration and velocity
       calculations from before result in smooth rotations of the agent, even if
       they can sometimes be fast.
     </p>
@@ -203,6 +204,17 @@
       and randomly, but forcing the acceleration to be over some minimum amount
       and changing the renderer from the default to P2D fixed up most of those
       issues.
+    </p>
+    <h2>Texture Rendering</h2>
+    <p>
+      Processing loads images in as an array of pixels to then be rendered as
+      textures or plain images. As can be imagined, large images have a lot of
+      pixels and thus take a significant amount of processing power. I didn't
+      realize this at first, and tried to load an image that was 3000 by 5000
+      pixels. The performance was terrible and it took me a significant amount
+      of time to figure out why. After that, resizing the image while
+      maintaining a good resolution was a concern, but luckily Windows' Photos
+      app was able to resize the image for me properly.
     </p>
 
     <script src="" async defer></script>
