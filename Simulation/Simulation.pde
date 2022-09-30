@@ -13,8 +13,7 @@
 //Change the below parameters to change the scenario/roadmap size
 int numObstacles = 150;
 int numNodes  = 200;
-  
-  
+ 
 //A list of circle obstacles
 static int maxNumObstacles = 1000;
 Vec2 circlePos[] = new Vec2[maxNumObstacles]; //Circle positions
@@ -36,8 +35,9 @@ Vec2[] nodePos = new Vec2[maxNumNodes];
 
 PImage rocketImage;
 PImage asteroidImage;
-PImage milkywayImage;
 PGraphics asteroidAtmosphere;
+
+boolean paused = true;
 
 //Generate non-colliding PRM nodes
 void generateRandomNodes(int numNodes, Vec2[] circleCenters, float[] circleRadii){
@@ -89,7 +89,6 @@ void setup(){
   
   rocketImage = loadImage("rocket.png");
   asteroidImage = loadImage("asteroid.png");
-  milkywayImage = loadImage("milkyway.png");
   createGraph();
 }
 
@@ -123,8 +122,6 @@ void draw(){
   //println("FrameRate:",frameRate);
   
   strokeWeight(0);
-  //background(200); //Grey background
-  //background(milkywayImage);
   background(0, 0, 0);
   stroke(0,0,0);
   fill(255,255,255, 80);
@@ -152,12 +149,6 @@ void draw(){
     circleRotation[i] += ((1/frameRate)*circleRotationSpeed[i]) % PI;
   }
   
-  //Draw the first circle a little special b/c the user controls it
-  fill(240);
-  strokeWeight(2);
-  circle(circlePos[0].x,circlePos[0].y,(circleRad[0] - agentRad)*2);
-  strokeWeight(1);
-  
   //Draw PRM Nodes
   fill(0);
   for (int i = 0; i < numNodes; i++){
@@ -171,7 +162,6 @@ void draw(){
     for (int j : neighbors[i]){
       line(nodePos[i].x,nodePos[i].y,nodePos[j].x,nodePos[j].y);
     }
-    
   }
   
   stroke(255, 255, 255);
@@ -180,7 +170,9 @@ void draw(){
     point(nodePos[i].x, nodePos[i].y);
   }
   
-  moveAgents(1.0/frameRate);
+  if(!paused) {
+    moveAgents(1.0/frameRate);
+  }
   
   for (int i = 0; i < numberOfAgents; i++) {
     float PHI = (1 + sqrt(5))/2;
@@ -238,34 +230,11 @@ void draw(){
   } 
 }
 
-boolean shiftDown = false;
 void keyPressed(){
   if (key == 'r'){
     createGraph();
-    return;
-  }
-  
-  if (keyCode == SHIFT){
-    shiftDown = true;
-  }
-  
-  float speed = 10;
-  if (shiftDown) speed = 30;
-  if (keyCode == RIGHT){
-    circlePos[0].x += speed;
-  }
-  if (keyCode == LEFT){
-    circlePos[0].x -= speed;
-  }
-  if (keyCode == UP){
-    circlePos[0].y -= speed;
-  }
-  if (keyCode == DOWN){
-    circlePos[0].y += speed;
-  }
-  connectNeighbors(circlePos, circleRad, numObstacles, nodePos, numNodes);
-  for (int i = 0; i < numberOfAgents; i++) {
-    curPath[i] = planPath(startPos[i], goalPos[i], circlePos, circleRad, numObstacles, nodePos, numNodes);
+  } else if (key == ' ') {
+    paused = !paused;
   }
 }
 
