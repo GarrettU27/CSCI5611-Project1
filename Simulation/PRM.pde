@@ -1,3 +1,4 @@
+import java.util.*;
 //You will only be turning in this file
 //Your solution will be graded based on it's runtime (smaller is better), 
 //the optimality of the path you return (shorter is better), and the
@@ -70,9 +71,13 @@ ArrayList<Integer> planPath(Vec2 startPos, Vec2 goalPos, Vec2[] centers, float[]
   return path;
 }
 
+// DOES NOT WORK YET. Still need to account for last bit
 ArrayList<Integer> runAStar(Vec2[] nodePos, int numNodes, Vec2 startPos, Vec2 goalPos, Vec2[] centers, float[] radii) {
-  PriorityQueue fringe = new PriorityQueue();
-  int[] cameFrom = new int[numNodes];
+  int startID = numNodes + 1;
+  int goalID = numNodes + 2;
+  
+  PriorityQueue<Node> fringe = new PriorityQueue<Node>(maxNumNodes);
+  int[] cameFrom = new int[numNodes + 3];
   HashMap<Integer, Float> costSoFar = new HashMap<Integer, Float>();
   ArrayList<Integer> goalNodes = new ArrayList<Integer>();
   
@@ -83,8 +88,8 @@ ArrayList<Integer> runAStar(Vec2[] nodePos, int numNodes, Vec2 startPos, Vec2 go
     float distBetween = startPos.distanceTo(nodePos[i]);
     hitInfo circleListCheck = rayCircleListIntersect(centers, radii, numObstacles, startPos, dir, distBetween);
     if (!circleListCheck.hit){
-      fringe.insert(i, distBetween + nodePos[i].distanceTo(goalPos));
-      cameFrom[i] = -1;
+      fringe.add(new Node(i, distBetween + nodePos[i].distanceTo(goalPos)));
+      cameFrom[i] = startID;
       costSoFar.put(i, distBetween);
     }
     
@@ -100,10 +105,17 @@ ArrayList<Integer> runAStar(Vec2[] nodePos, int numNodes, Vec2 startPos, Vec2 go
   int currentNode = 0;
   
   while(!fringe.isEmpty()) {
-    currentNode = fringe.extractMin();
+    currentNode = fringe.poll().id;
+    
+    if (currentNode == goalID) {
+      break;
+    }
     
     if (goalNodes.contains(currentNode)) {
-      break;
+      float priority = costSoFar.get(currentNode) + nodePos[currentNode].distanceTo(goalPos);
+      fringe.add(new Node(goalID, priority));
+      cameFrom[goalID] = currentNode;
+      continue;
     }
     
     for (int i = 0; i < neighbors[currentNode].size(); i++){
@@ -113,7 +125,7 @@ ArrayList<Integer> runAStar(Vec2[] nodePos, int numNodes, Vec2 startPos, Vec2 go
       if(!costSoFar.containsKey(next) || newCost < costSoFar.get(next)) {
         costSoFar.put(next, newCost);
         float priority = newCost + nodePos[next].distanceTo(goalPos);
-        fringe.insert(next, priority);
+        fringe.add(new Node(next, priority));
         cameFrom[next] = currentNode;
       }
     } 
@@ -126,7 +138,9 @@ ArrayList<Integer> runAStar(Vec2[] nodePos, int numNodes, Vec2 startPos, Vec2 go
     return path;
   }
   
-  while (currentNode != -1) {
+  currentNode = cameFrom[currentNode];
+  
+  while (currentNode != startID) {
     path.add(0, currentNode);
     currentNode = cameFrom[currentNode];
   }

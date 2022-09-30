@@ -102,31 +102,31 @@ ArrayList<Integer> runAStar(Vec2[] nodePos, int numNodes, Vec2 startPos, Vec2 go
     }
   }
   
-  Node currentNode = new Node(0, 0);
+  int currentNode = 0;
   
   while(!fringe.isEmpty()) {
-    currentNode = fringe.poll(); //<>//
+    currentNode = fringe.poll().id; //<>//
     
-    if (currentNode.id == goalID) {
+    if (currentNode == goalID) {
       break;
     }
     
-    if (goalNodes.contains(currentNode.id)) {
-      float priority = costSoFar.get(currentNode.id) + nodePos[currentNode.id].distanceTo(goalPos);
+    if (goalNodes.contains(currentNode)) {
+      float priority = costSoFar.get(currentNode) + nodePos[currentNode].distanceTo(goalPos);
       fringe.add(new Node(goalID, priority));
-      cameFrom[goalID] = currentNode.id;
+      cameFrom[goalID] = currentNode;
       continue;
     }
     
-    for (int i = 0; i < getNeighborIds(currentNode).size(); i++){
-      int next = getNeighborIds(currentNode).get(i);
-      float newCost = costSoFar.get(currentNode.id) + distanceBetweenNodes(nodePos, currentNode.id, next);
+    for (int i = 0; i < neighbors[currentNode].size(); i++){
+      int next = neighbors[currentNode].get(i);
+      float newCost = costSoFar.get(currentNode) + distanceBetweenNodes(nodePos, currentNode, next);
       
       if(!costSoFar.containsKey(next) || newCost < costSoFar.get(next)) {
         costSoFar.put(next, newCost);
         float priority = newCost + nodePos[next].distanceTo(goalPos);
         fringe.add(new Node(next, priority));
-        cameFrom[next] = currentNode.id;
+        cameFrom[next] = currentNode;
       }
     } 
   }
@@ -138,18 +138,14 @@ ArrayList<Integer> runAStar(Vec2[] nodePos, int numNodes, Vec2 startPos, Vec2 go
     return path;
   }
   
-  int currentNodeID = cameFrom[currentNode.id];
+  currentNode = cameFrom[currentNode];
   
-  while (currentNodeID != startID) {
-    path.add(0, currentNodeID);
-    currentNodeID = cameFrom[currentNodeID];
+  while (currentNode != startID) {
+    path.add(0, currentNode);
+    currentNode = cameFrom[currentNode];
   }
   
   return path;
-}
-
-ArrayList<Integer> getNeighborIds(Node n) {
-  return neighbors[n.id];
 }
 
 float distanceBetweenNodes(Vec2[] nodePos, int nodeID, int goalID) {

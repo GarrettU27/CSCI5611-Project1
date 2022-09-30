@@ -20,9 +20,8 @@ static int maxNumObstacles = 1000;
 Vec2 circlePos[] = new Vec2[maxNumObstacles]; //Circle positions
 float circleRad[] = new float[maxNumObstacles];  //Circle radii
 
-float agentCircleRad[] = new float[maxNumObstacles];
 float agentRad = 10;
-int numberOfAgents = 5;
+int numberOfAgents = 10;
 
 Vec2[] startPos = new Vec2[numberOfAgents];
 Vec2[] currentPos = new Vec2[numberOfAgents];
@@ -51,15 +50,14 @@ void placeRandomObstacles(int numObstacles){
   //Initial obstacle position
   for (int i = 0; i < numObstacles; i++){
     circlePos[i] = new Vec2(random(50,950),random(50,700));
-    circleRad[i] = (10+40*pow(random(1),3));
-    agentCircleRad[i] = circleRad[i] + agentRad;
+    circleRad[i] = (10+40*pow(random(1),3)) + agentRad;
   }
-  circleRad[0] = 30; //Make the first obstacle big
+  circleRad[0] = 30 + agentRad; //Make the first obstacle big
 }
 
 int strokeWidth = 2;
 void setup(){
-  size(1024,768);
+  size(1024,768, P2D);
   
   for(int i = 0; i < numberOfAgents; i++) {
     startPos[i] = new Vec2(0, 0);
@@ -83,6 +81,9 @@ void createGraph() {
     currentPos[i] = startPos[i].times(1);
     goalPos[i] = sampleFreePos();
     curPath[i] = planPath(startPos[i], goalPos[i], circlePos, circleRad, numObstacles, nodePos, numNodes);
+    currentVel[i] = new Vec2(0, 0);
+    goalVel[i] = new Vec2(0, 0);
+    agentsGoalPos[i] = new Vec2(0, 0);
   }
 }
 
@@ -98,22 +99,32 @@ Vec2 sampleFreePos(){
 
 void draw(){
   //println("FrameRate:",frameRate);
+  
   strokeWeight(1);
   background(200); //Grey background
   stroke(0,0,0);
   fill(255,255,255);
+  //PImage img = loadImage("rocket.png");
+  //textureMode(NORMAL);
+  //beginShape();
+  //texture(img);
+  //vertex(0, 0, 0, 0);
+  //vertex(agentRad, 0, 1, 0);
+  //vertex(agentRad, agentRad, 1, 1);
+  //vertex(0, agentRad, 0, 1);
+  //endShape();
   
   
   //Draw the circle obstacles
   for (int i = 0; i < numObstacles; i++){
     Vec2 c = circlePos[i];
-    float r = circleRad[i];
+    float r = circleRad[i] - agentRad;
     circle(c.x,c.y,r*2);
   }
   //Draw the first circle a little special b/c the user controls it
   fill(240);
   strokeWeight(2);
-  circle(circlePos[0].x,circlePos[0].y,circleRad[0]*2);
+  circle(circlePos[0].x,circlePos[0].y,(circleRad[0] - agentRad)*2);
   strokeWeight(1);
   
   //Draw PRM Nodes
@@ -174,9 +185,8 @@ void draw(){
     
     //Draw moving agents
     stroke(0, 0, 0);
-    strokeWeight(1);
-    fill(colorToUse);
-    circle(currentPos[i].x, currentPos[i].y, agentRad);
+    strokeWeight(1);    fill(colorToUse);
+    circle(currentPos[i].x, currentPos[i].y, agentRad*2);
   } 
 }
 
@@ -211,8 +221,10 @@ void keyPressed(){
   }
 }
 
-float maxVelocity = 100;
+float maxVelocity = 200;
+float minVelocity = 50;
 float maxAcceleration = 300;
+
 Vec2[] currentVel = new Vec2[numberOfAgents];
 Vec2[] goalVel = new Vec2[numberOfAgents];
 Vec2[] agentsGoalPos = new Vec2[numberOfAgents];
@@ -233,14 +245,17 @@ void moveAgents(float dt) {
     }
     
     goalVel[i] = agentsGoalPos[i].minus(currentPos[i]);
-    if(goalVel[i].length() != 0) {
+    
+    if(goalVel[i].length() >= maxVelocity) {
       goalVel[i].setToLength(maxVelocity);
+    }
+    else if(goalVel[i].length() <= minVelocity && goalVel[i].length() != 0) {
+      goalVel[i].setToLength(minVelocity);
     }
     
     Vec2 currentAcc = goalVel[i].minus(currentVel[i]);
-    if (currentAcc.length() >= maxAcceleration * dt) {
-      currentAcc.setToLength(maxAcceleration);
-    }
+    currentAcc.setToLength(maxAcceleration);
+    
     
     currentVel[i].add(currentAcc.times(dt));
     
@@ -250,6 +265,23 @@ void moveAgents(float dt) {
     } else {
       currentPos[i].add(currentVel[i].times(dt));
     }
+    
+    //strokeWeight(2);
+    
+    //pushMatrix();
+    //translate(currentPos[i].x,currentPos[i].y);
+    
+    //stroke(255, 0, 0);
+    //line(0,0,currentVel[i].x,currentVel[i].y);
+    
+    //stroke(0, 255, 0);
+    //line(0,0,goalVel[i].x,goalVel[i].y);
+    
+    //translate(currentVel[i].x,currentVel[i].y);
+ 
+    //stroke(0, 0, 255);
+    //line(0,0,currentAcc.times(dt).x,currentAcc.times(dt).y);
+    //popMatrix();
   }
 
 }
